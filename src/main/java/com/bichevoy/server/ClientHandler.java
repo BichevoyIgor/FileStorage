@@ -19,25 +19,54 @@ public class ClientHandler implements Runnable {
         ) {
             while (true) {
                 String command = in.readUTF();
+                System.out.println("получил команду " + command);
                 if ("upload".equals(command)) {
                     uploading(out, in);
-                }
-                if ("download".equals(command)) {
-                    // TODO: 13.05.2021 downloading
-                }
-                if ("exit".equals(command)) {
+                } else if ("download".equals(command)) {
+                    downloading(out, in);
+                } else if ("exit".equals(command)) {
                     out.writeUTF("DONE");
                     disconnected();
                     System.out.printf("Client %s disconnected correctly\n", socket.getInetAddress());
                     break;
+                } else {
+                    System.out.println(command);
+                    out.writeUTF(command);
                 }
-                System.out.println(command);
-                out.writeUTF(command);
             }
         } catch (SocketException socketException) {
             System.out.printf("Client %s disconnected\n", socket.getInetAddress());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        catch (Exception e) {
+    }
+
+    /**
+     * uploading a file to the client
+     * @param out output stream
+     * @param in incoming stream
+     */
+    private void downloading(DataOutputStream out, DataInputStream in) {
+        try {
+            String filename = in.readUTF();
+            File file = new File("server/" + filename);
+            if (file.exists()) {
+                out.writeUTF(filename);
+                long fileLength = file.length();
+                FileInputStream fis = new FileInputStream(file);
+                out.writeLong(fileLength);
+                int read = 0;
+                byte[] buffer = new byte[8 * 1024];
+                while ((read = fis.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
+                }
+                //out.flush();
+                fis.close();
+                String status = in.readUTF();
+                System.out.println("Sending status: " + status);
+            }
+
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
